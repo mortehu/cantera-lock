@@ -131,8 +131,9 @@ game_process_frame(float width, float height, double delta_time)
     {
       for(i = 0; i < screen_count; ++i)
         {
-          char date[24];
+          char date[32];
           struct tm* lt;
+          time_t now;
 
           lt = localtime(&begin_lock);
           strftime(date, sizeof(date), "%Y-%m-%d %H:%M %Z", lt);
@@ -173,6 +174,11 @@ game_process_frame(float width, float height, double delta_time)
           y += 25.0f;
           font_draw(font, 18, buf, x + 10.0, y + 20.0, 0);
           free(buf);
+
+          now = time (0);
+          lt = localtime(&now);
+          strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S %Z", lt);
+          font_draw(font, 18, date, x + 10.0, screens[i].y_org + screens[i].height - 10.0, 0);
         }
     }
 
