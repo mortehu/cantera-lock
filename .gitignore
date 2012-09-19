@@ -16,9 +16,13 @@ Makefile
 Makefile.in
 aclocal.m4
 cantera-lock
-cantera-term
-cantera-wm
+config.guess
 config.h
+config.sub
 configure
+depcomp
+install-sh
 libtool
+ltmain.sh
+missing
 stamp-h1
