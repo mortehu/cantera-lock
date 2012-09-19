@@ -1,0 +1,19 @@
+The program locks X11 screens
+
+Why not use this program:
+
+ * May be unsafe?  There may be ways to circumvent the keyboard grab
+
+ * Requires that the user can read his own password hash through getpwent(),
+   i.e. shadow passwords are unsupported
+
+ * Contains lots of irrelevant code -- was forked off a game engine
+
+Why use it:
+
+ * You don't want to press enter when you've finished typing your password, and
+   you don't want to be penalized for typos
+ 
+ * You want to see for how long the screen has been locked
+
+ * You wnat to see the clock
