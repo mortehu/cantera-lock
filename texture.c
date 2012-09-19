@@ -15,7 +15,6 @@
 #include "draw.h"
 #include "hashmap.h"
 #include "texture.h"
-#include "var.h"
 
 #define MAX_TEXTURE_HANDLES 1024
 
@@ -45,9 +44,6 @@ int texture_load(const char* path)
   unsigned int row;
   int bit_depth, pixel_format, interlace_type;
   int i;
-
-  if(!var_find("r_enable")->vfloat)
-    return 0;
 
   if(!TEXTURE_hashmap)
     TEXTURE_hashmap = hashmap_create("textures");

@@ -42,21 +42,11 @@
 
 #include "error.h"
 #include "input.h"
-#include "var.h"
 
 #define NDEBUG 1
 
 /* AltiVec */
 #undef pixel
-
-var main_variables[] =
-{
-  { "fullscreen",   var_archive, var_float, 0, 1.0f },
-  { "r_enable",     var_archive, var_float, 0, 1.0f },
-  { "r_waitvblank", var_archive, var_float, 0, 0.0f },
-  { "width",        var_archive, var_float, 0, 0.0f },
-  { "height",       var_archive, var_float, 0, 0.0f },
-};
 
 extern void game_process_frame(float width, float height, double delta_time);
 extern void game_init();
@@ -122,6 +112,7 @@ get_password_hash()
 
 int main(int argc, char** argv)
 {
+  int width, height;
   int i, j;
   int fd;
   const char *display_name;
@@ -142,13 +133,6 @@ int main(int argc, char** argv)
       write(fd, "-17", 3);
       close(fd);
     }
-
-  var_register(main_variables);
-
-  var* fullscreen = var_find("fullscreen");
-  var* width = var_find("width");
-  var* height = var_find("height");
-  var* r_waitvblank = var_find("r_waitvblank");
 
   user_name = get_user_name();
   host_name = get_host_name();
@@ -187,54 +171,6 @@ int main(int argc, char** argv)
   XWindowAttributes root_window_attr;
 
   XGetWindowAttributes(display, RootWindow(display, DefaultScreen(display)), &root_window_attr);
-
-  int mode_count;
-
-  XF86VidModeGetAllModeLines(display, visual->screen, &mode_count, &mode_info);
-
-  if(fullscreen->vfloat)
-  {
-    int smallest_area = INT_MAX;
-    int smallest_mode = 0;
-
-    if(width->vfloat && height->vfloat)
-    {
-      int i;
-
-      for(i = 0; i < mode_count; ++i)
-      {
-        if(mode_info[i]->hdisplay >= width->vfloat
-        && mode_info[i]->vdisplay >= height->vfloat)
-        {
-          if(mode_info[i]->hdisplay * mode_info[i]->vdisplay < smallest_area)
-          {
-            smallest_area = mode_info[i]->hdisplay * mode_info[i]->vdisplay;
-            smallest_mode = i;
-          }
-        }
-      }
-    }
-    else
-    {
-      smallest_mode = 0;
-    }
-
-    restore = 1;
-
-    XF86VidModeSwitchToMode(display, visual->screen, mode_info[smallest_mode]);
-    XF86VidModeSetViewPort(display, visual->screen, 0, 0);
-
-    width->vfloat = mode_info[smallest_mode]->hdisplay;
-    height->vfloat = mode_info[smallest_mode]->vdisplay;
-  }
-  else
-  {
-    if(!width->vfloat && !height->vfloat)
-    {
-      width->vfloat = floor(root_window_attr.width * 0.5f);
-      height->vfloat = floor(root_window_attr.height * 0.5f);
-    }
-  }
 
   atexit(exithandler);
 
@@ -278,33 +214,23 @@ int main(int argc, char** argv)
   attr.event_mask = KeyPressMask | VisibilityChangeMask | ExposureMask | StructureNotifyMask | FocusChangeMask;
   attr.cursor = cursor;
 
-  if(fullscreen->vfloat)
-  {
-    attr.override_redirect = True;
+  attr.override_redirect = True;
 
-    window = XCreateWindow(display, RootWindow(display, visual->screen),
-                           0, 0, width->vfloat, height->vfloat,
-                           0, visual->depth, InputOutput, visual->visual,
-                             CWOverrideRedirect | CWCursor | CWColormap
-                           | CWEventMask, &attr);
-    XMapRaised(display, window);
-    XGrabPointer(display, window, True,
-                 ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
-                 GrabModeAsync, GrabModeAsync, window, None, CurrentTime);
-    XGrabKeyboard(display, DefaultRootWindow(display), True, GrabModeAsync, GrabModeAsync,
-                  CurrentTime);
-    XSetInputFocus(display, window, RevertToParent, CurrentTime);
-  }
-  else
-  {
-    window = XCreateWindow(display, RootWindow(display, visual->screen),
-                           0, 0, width->vfloat, height->vfloat,
-                           0, visual->depth, InputOutput, visual->visual,
-                           CWBorderPixel | CWCursor | CWColormap | CWEventMask,
-                           &attr);
+  width = root_window_attr.width;
+  height = root_window_attr.height;
 
-    XMapWindow(display, window);
-  }
+  window = XCreateWindow(display, RootWindow(display, visual->screen),
+                         0, 0, width, height,
+                         0, visual->depth, InputOutput, visual->visual,
+                         CWOverrideRedirect | CWCursor | CWColormap
+                         | CWEventMask, &attr);
+  XMapRaised(display, window);
+  XGrabPointer(display, window, True,
+               ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+               GrabModeAsync, GrabModeAsync, window, None, CurrentTime);
+  XGrabKeyboard(display, DefaultRootWindow(display), True, GrabModeAsync, GrabModeAsync,
+                CurrentTime);
+  XSetInputFocus(display, window, RevertToParent, CurrentTime);
 
   XFlush(display);
 
@@ -436,7 +362,6 @@ int main(int argc, char** argv)
   game_init();
 
   int done = 0;
-  unsigned int prev_retrace_count = 0;
 
   struct timeval start;
   gettimeofday(&start, 0);
@@ -534,10 +459,10 @@ int main(int argc, char** argv)
 
       case ConfigureNotify:
 
-        width->vfloat = event.xconfigure.width;
-        height->vfloat = event.xconfigure.height;
+        width = event.xconfigure.width;
+        height = event.xconfigure.height;
 
-        glViewport(0, 0, (int)width->vfloat, (int)height->vfloat);
+        glViewport(0, 0, event.xconfigure.width, event.xconfigure.height);
 
         break;
 
@@ -561,124 +486,9 @@ int main(int argc, char** argv)
 
     start = now;
 
-    game_process_frame(width->vfloat, height->vfloat, delta_time);
-
-#if !defined(NDEBUG)
-    gettimeofday(&game_cpu, 0);
-#endif
-
-#ifndef NDEBUG
-    gettimeofday(&cpu, 0);
-    gpu_start = cpu;
-    glFinish();
-    gettimeofday(&gpu, 0);
-
-    if(1)
-    {
-      float game_cpu_time, cpu_time, gpu_time;
-
-      cpu_time = (game_cpu.tv_sec - cpu_start.tv_sec) + (game_cpu.tv_usec - cpu_start.tv_usec) * 0.000001f;
-      cpu_time = (cpu.tv_sec - cpu_start.tv_sec) + (cpu.tv_usec - cpu_start.tv_usec) * 0.000001f;
-      gpu_time = (gpu.tv_sec - gpu_start.tv_sec) + (gpu.tv_usec - gpu_start.tv_usec) * 0.000001f;
-
-      glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
-      glPushAttrib(GL_ALL_ATTRIB_BITS);
-
-      glMatrixMode(GL_PROJECTION);
-      glLoadIdentity();
-
-      glMatrixMode(GL_MODELVIEW);
-      glLoadIdentity();
-      glOrtho(0.0, width->vfloat, height->vfloat, 0.0, 0.0, -1.0);
-
-      glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-
-      for(i = 0; i < 8; ++i)
-      {
-        glActiveTexture(GL_TEXTURE0 + i);
-        glDisable(GL_TEXTURE_2D);
-      }
-
-      glEnable(GL_BLEND);
-      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      glDisable(GL_DEPTH_TEST);
-
-      glBegin(GL_QUADS);
-      float y = height->vfloat - 110.0f;
-      glColor4f(0.0f, 0.5f, 0.0f, 0.5f);
-      glVertex2f(10.0f, y);
-      glVertex2f(10.0f, y + 100.0f);
-      glVertex2f(410.0f, y + 100.0f);
-      glVertex2f(410.0f, y);
-
-      glColor3f(0.0f, 0.0f, 0.0f);
-      glVertex2f(210.0f, y);
-      glVertex2f(210.0f, y + 100.0f);
-      glVertex2f(212.0f, y + 100.0f);
-      glVertex2f(212.0f, y);
-
-      float game_cpu_x = game_cpu_time / 0.016667f * 200.0f;
-      float cpu_x = cpu_time / 0.016667f * 200.0f;
-      float gpu_x = gpu_time / 0.016667f * 200.0f;
-
-#define BAR_CLAMP(v) do { if((v) < 1.0f) v = 1.0f; else if((v) > 400.0f) v = 400.0f; } while(0)
-
-      BAR_CLAMP(cpu_x);
-      BAR_CLAMP(gpu_x);
-      BAR_CLAMP(game_cpu_x);
-
-      if(cpu_time < 0.016666f)
-        glColor3f(0.0f, 1.0f, 0.0f);
-      else
-        glColor3f(1.0f, 0.0f, 0.0f);
-
-      glVertex2f(10.0f, y + 5.0f);
-      glVertex2f(10.0f, y + 10.0f);
-      glVertex2f(10.0f + cpu_x, y + 10.0f);
-      glVertex2f(10.0f + cpu_x, y + 5.0f);
-
-      if(gpu_time < 0.016666f)
-        glColor3f(0.0f, 1.0f, 0.0f);
-      else
-        glColor3f(1.0f, 0.0f, 0.0f);
-
-      glVertex2f(10.0f, y + 15.0f);
-      glVertex2f(10.0f, y + 20.0f);
-      glVertex2f(10.0f + gpu_x, y + 20.0f);
-      glVertex2f(10.0f + gpu_x, y + 15.0f);
-
-      glColor3f(0.0f, 0.0f, 0.0f);
-      glVertex2f(10.0f, y + 25.0f);
-      glVertex2f(10.0f, y + 30.0f);
-      glVertex2f(10.0f + game_cpu_x, y + 30.0f);
-      glVertex2f(10.0f + game_cpu_x, y + 25.0f);
-
-      glEnd();
-
-      glPopAttrib();
-      glPopClientAttrib();
-    }
-#endif
-
-    #if 0
-    if(r_waitvblank->vfloat)
-    {
-      unsigned int retrace_count;
-
-      glXGetVideoSyncSGI(&retrace_count);
-
-      if(retrace_count == prev_retrace_count)
-        glXWaitVideoSyncSGI(2, (retrace_count + 1) & 1, &prev_retrace_count);
-      else
-        prev_retrace_count = retrace_count;
-    }
-    #endif
+    game_process_frame(width, height, delta_time);
 
     glXSwapBuffers(display, window);
-
-#ifndef NDEBUG
-    gettimeofday(&cpu_start, 0);
-#endif
 
     for(i = 0; i < sizeof(device_states) / sizeof(device_states[0]); ++i)
     {

@@ -1,6 +1,0 @@
-[Desktop Entry]
-Encoding=UTF-8
-Name=Cantera Terminal
-TryExec=cantera-term
-Exec=cantera-term
-Icon=terminal
