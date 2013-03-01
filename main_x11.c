@@ -87,7 +87,7 @@ char* host_name;
 char* password_hash;
 
 void
-get_password_hash()
+get_password_hash (void)
 {
   struct passwd* p;
   struct spwd* s;
@@ -110,7 +110,27 @@ get_password_hash()
     }
 }
 
-int main(int argc, char** argv)
+static void
+attempt_grab (void)
+{
+  static int pointer_grabbed, keyboard_grabbed;
+
+  /* Grabs may fail if keys are being pressed while the program is starting */
+
+  if (!pointer_grabbed
+      && GrabSuccess == XGrabPointer(display, window, True,
+                                     ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+                                     GrabModeAsync, GrabModeAsync, window, None, CurrentTime))
+    pointer_grabbed = 1;
+
+  if (!keyboard_grabbed
+      && GrabSuccess == XGrabKeyboard(display, DefaultRootWindow(display), True, GrabModeSync, GrabModeAsync,
+                                      CurrentTime))
+    keyboard_grabbed = 1;
+}
+
+int
+main(int argc, char** argv)
 {
   int width, height;
   int i, j;
@@ -225,11 +245,9 @@ int main(int argc, char** argv)
                          CWOverrideRedirect | CWCursor | CWColormap
                          | CWEventMask, &attr);
   XMapRaised(display, window);
-  XGrabPointer(display, window, True,
-               ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
-               GrabModeAsync, GrabModeAsync, window, None, CurrentTime);
-  XGrabKeyboard(display, DefaultRootWindow(display), True, GrabModeSync, GrabModeAsync,
-                CurrentTime);
+
+  attempt_grab ();
+
   XSetInputFocus(display, window, RevertToParent, CurrentTime);
 
   XFlush(display);
@@ -468,6 +486,8 @@ int main(int argc, char** argv)
 
       case FocusOut:
 
+        /* If keyboard grabs have been unsuccessful so far, this might happen */
+
         XSetInputFocus(display, window, RevertToParent, CurrentTime);
 
         break;
@@ -495,6 +515,8 @@ int main(int argc, char** argv)
       for(j = 0; j < device_states[i].button_count; ++j)
         device_states[i].button_states[j] &= ~(button_pressed | button_released | button_repeated);
     }
+
+    attempt_grab ();
   }
 
   return EXIT_SUCCESS;
