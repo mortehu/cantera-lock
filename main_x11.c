@@ -16,6 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
+#include <ctype.h>
 #include <errno.h>
 #include <limits.h>
 #include <math.h>
@@ -23,14 +24,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <err.h>
+#include <fcntl.h>
 #include <pwd.h>
 #include <shadow.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -90,24 +92,40 @@ void
 get_password_hash (void)
 {
   struct passwd* p;
-  struct spwd* s;
+  char *passkey_path;
+  FILE *passkey_file;
 
   p = getpwnam(user_name);
 
   if(!p)
-    exit(EXIT_FAILURE);
+    errx (EXIT_FAILURE, "getpwnam failed for '%s'", user_name);
+
+  if (-1 == asprintf (&passkey_path, "%s/.cantera/lock-passkey", p->pw_dir))
+    err (EXIT_FAILURE, "asprintf failed");
+
+  if (NULL != (passkey_file = fopen (passkey_path, "r")))
+    {
+      size_t i, password_hash_alloc = 4096;
+
+      password_hash = malloc (password_hash_alloc);
+
+      fgets (password_hash, password_hash_alloc, passkey_file);
+
+      i = strlen (password_hash);
+
+      while (i && isspace (password_hash[i - 1]))
+        password_hash[--i] = 0;
+
+      return;
+    }
+  else if (errno != ENOENT)
+    err (EXIT_FAILURE, "fopen failed");
 
   password_hash = p->pw_passwd;
 
-  if(!strcmp(password_hash, "x"))
-    {
-      s = getspnam(user_name);
+  if(strcmp(password_hash, "x"))
+    return;
 
-      if(!s)
-        exit(EXIT_FAILURE);
-
-      password_hash = s->sp_pwdp;
-    }
 }
 
 static void
@@ -163,9 +181,7 @@ main(int argc, char** argv)
   setuid(getuid());
 
   if(!display)
-  {
     fatal_error("Failed to open display %s", display_name);
-  }
 
   if(!glXQueryExtension(display, 0, 0))
     fatal_error("No GLX extension present");
