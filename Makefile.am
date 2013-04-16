@@ -1,4 +1,4 @@
-bin_PROGRAMS = cantera-lock
+bin_PROGRAMS = cantera-lock genpwhash
 pkgdata_DATA = gfx/fonts/vera-sans-mono.dat gfx/fonts/vera-sans-mono_0.png
 
 CONVERT = @CONVERT@
@@ -18,6 +18,9 @@ cantera_lock_SOURCES = \
   input.h main_x11.c \
   lock.c
 cantera_lock_LDADD = -lX11 -lGL -lGLU -lm -lXxf86vm -lpng -lXinerama -lcrypt
+
+genpwhash_SOURCES = genpwhash.c
+genpwhash_LDADD = -lcrypt
 
 EXTRA_DIST = \
   cantera-lock/gfx/fonts/vera-sans-mono.dat \
