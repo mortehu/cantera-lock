@@ -17,7 +17,7 @@ cantera_lock_SOURCES = \
   vector.h vector.c \
   input.h main_x11.c \
   lock.c
-cantera_lock_LDADD = -lX11 -lGL -lGLU -lm -lXxf86vm -lpng -lXinerama -lcrypt
+cantera_lock_LDADD = -lX11 -lGL -lGLU -lm -lpng -lXinerama -lcrypt
 
 genpwhash_SOURCES = genpwhash.c
 genpwhash_LDADD = -lcrypt
