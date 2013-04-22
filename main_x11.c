@@ -36,7 +36,6 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include <X11/extensions/xf86vmode.h>
 #include <X11/extensions/Xinerama.h>
 #include <X11/keysym.h>
 
@@ -65,9 +64,6 @@ static XIC          xic;
 XineramaScreenInfo* screens;
 int screen_count = 0;
 
-static int restore;
-static XF86VidModeModeInfo** mode_info;
-
 static char* get_user_name();
 static char* get_host_name();
 static Bool wait_for_map_notify(Display*, XEvent* event, char* arg);
@@ -76,9 +72,6 @@ static device_state device_states[2];
 
 static void exithandler(void)
 {
-  if(restore)
-    XF86VidModeSwitchToMode(display, visual->screen, mode_info[0]);
-
   XFlush(display);
 }
 
