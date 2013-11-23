@@ -12,13 +12,12 @@
 #include "error.h"
 #include "draw.h"
 #include "font.h"
-#include "input.h"
 
 static int font;
 static time_t begin_lock;
 static time_t hide_hud = 0;
 
-void game_init()
+void game_init(void)
 {
   begin_lock = time(0);
   font = font_load("vera-sans-mono");
@@ -43,10 +42,38 @@ static const char* hash_for_password(const char* password, const char* salt)
 }
 
 void
+key_pressed (KeySym symbol, const char* text)
+{
+  switch(text[0])
+    {
+    case '\b':
+
+      if(pass[0])
+        pass[strlen(pass) - 1] = 0;
+
+      break;
+
+    case 'U' & 0x3F:
+
+      pass[0] = 0;
+
+      break;
+
+    default:
+
+      if(strlen(pass) + strlen(text) < sizeof(pass) - 1)
+        strcat(pass, text);
+    }
+
+  if(!strcmp(password_hash, hash_for_password(pass, password_hash)))
+    exit(0);
+
+  hide_hud = time(0) + 20;
+}
+
+void
 game_process_frame(float width, float height, double delta_time)
 {
-  device_state* devices;
-  int device_count;
   int i, j;
   float x, y;
   char* buf;
@@ -55,44 +82,6 @@ game_process_frame(float width, float height, double delta_time)
   now_tt = time(0);
 
   now += delta_time * 0.2;
-
-  devices = input_get_device_states(&device_count);
-
-  for(i = 0; i < devices[0].button_count; ++i)
-    {
-      if(devices[0].button_states[i] & button_pressed)
-        hide_hud = now_tt + 20;
-    }
-
-  if(devices[0].text[0])
-    {
-      switch(devices[0].text[0])
-        {
-        case '\b':
-
-          if(pass[0])
-            pass[strlen(pass) - 1] = 0;
-
-          break;
-
-        case 'U' & 0x3F:
-
-          pass[0] = 0;
-
-          break;
-
-        default:
-
-          if(strlen(pass) + strlen(devices[0].text) < sizeof(pass) - 1)
-            strcat(pass, devices[0].text);
-        }
-
-      if(!strcmp(password_hash, hash_for_password(pass, password_hash)))
-        exit(0);
-
-      devices[0].text[0] = 0;
-      hide_hud = now_tt + 20;
-    }
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_BLEND);
