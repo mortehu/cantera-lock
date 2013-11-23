@@ -1,32 +1,58 @@
 #ifndef FONT_H_
 #define FONT_H_ 1
 
-#define FONT_ALIGN_LEFT   0
-#define FONT_ALIGN_CENTER 1
-#define FONT_ALIGN_RIGHT  2
+#include <stdint.h>
+#include <wchar.h>
 
-/**
- * Loads a font and return a handle.
- *
- * If the font is already loaded, return the previously generated handle.
- *
- * Terminates if the font does not exist.
- */
-int font_load(const char* name);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/**
- * Returns the pixel width of a string with a given font.
- */
-int font_string_width(int font, int size, const char* string);
+struct FONT_Data;
 
-/**
- * Draws the specified UTF-8 string.
- *
- * The y coordinate is taken as the baseline of the text (the bottom of most
- * capital letters).
- *
- * Returns the width of the string.
- */
-int font_draw(int font, int size, const char* string, float x, float y, int alignment);
+struct FONT_Glyph
+{
+  uint16_t width, height;
+  int16_t  x, y;
+  int16_t  xOffset, yOffset;
+
+  uint8_t data[1];
+};
+
+/************************************************************************/
+
+void
+FONT_Init (void);
+
+int
+FONT_PathsForFont (char ***paths, const char *name, unsigned int size, unsigned int weight);
+
+struct FONT_Data *
+FONT_Load (const char *name, unsigned int size, unsigned int weight);
+
+void
+FONT_Free (struct FONT_Data *font);
+
+unsigned int
+FONT_Ascent (struct FONT_Data *font);
+
+unsigned int
+FONT_Descent (struct FONT_Data *font);
+
+unsigned int
+FONT_LineHeight (struct FONT_Data *font);
+
+unsigned int
+FONT_SpaceWidth (struct FONT_Data *font);
+
+struct FONT_Glyph *
+FONT_GlyphForCharacter (struct FONT_Data *font, wint_t character);
+
+struct FONT_Glyph *
+FONT_GlyphWithSize (unsigned int width, unsigned int height);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* !FONT_H_ */

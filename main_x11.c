@@ -42,6 +42,8 @@
 
 #include <GL/glx.h>
 
+extern char **environ;
+
 #define NDEBUG 1
 
 /* AltiVec */

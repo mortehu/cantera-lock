@@ -28,7 +28,6 @@
 #include <GL/gl.h>
 
 #include "draw.h"
-#include "texture.h"
 
 #define MAX_BATCH_SIZE 1024
 
