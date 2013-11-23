@@ -42,7 +42,7 @@
 
 #include <GL/glx.h>
 
-extern char **environ;
+extern char** environ;
 
 #define NDEBUG 1
 
@@ -56,11 +56,11 @@ void key_pressed(KeySym symbol, const char* text);
 int program_argc;
 char** program_argv;
 
-static Display*     display = 0;
-static Window       window;
+static Display* display = 0;
+static Window window;
 static XVisualInfo* visual;
-static XIM          xim;
-static XIC          xic;
+static XIM xim;
+static XIC xic;
 
 XineramaScreenInfo* screens;
 int screen_count = 0;
@@ -72,10 +72,8 @@ static char* get_user_name();
 static char* get_host_name();
 static Bool wait_for_map_notify(Display*, XEvent* event, char* arg);
 
-static void exithandler(void)
-{
-  if(restore)
-    XF86VidModeSwitchToMode(display, visual->screen, mode_info[0]);
+static void exithandler(void) {
+  if (restore) XF86VidModeSwitchToMode(display, visual->screen, mode_info[0]);
 
   XFlush(display);
 }
@@ -84,72 +82,63 @@ char* user_name;
 char* host_name;
 char* password_hash;
 
-void
-get_password_hash (void)
-{
+void get_password_hash(void) {
   struct passwd* p;
-  char *passkey_path;
-  FILE *passkey_file;
+  char* passkey_path;
+  FILE* passkey_file;
 
   p = getpwnam(user_name);
 
-  if(!p)
-    errx (EXIT_FAILURE, "getpwnam failed for '%s'", user_name);
+  if (!p) errx(EXIT_FAILURE, "getpwnam failed for '%s'", user_name);
 
-  if (-1 == asprintf (&passkey_path, "%s/.cantera/lock-passkey", p->pw_dir))
-    err (EXIT_FAILURE, "asprintf failed");
+  if (-1 == asprintf(&passkey_path, "%s/.cantera/lock-passkey", p->pw_dir))
+    err(EXIT_FAILURE, "asprintf failed");
 
-  if (NULL != (passkey_file = fopen (passkey_path, "r")))
-    {
-      size_t i, password_hash_alloc = 4096;
+  if (NULL != (passkey_file = fopen(passkey_path, "r"))) {
+    size_t i, password_hash_alloc = 4096;
 
-      password_hash = malloc (password_hash_alloc);
+    password_hash = malloc(password_hash_alloc);
 
-      fgets (password_hash, password_hash_alloc, passkey_file);
+    fgets(password_hash, password_hash_alloc, passkey_file);
 
-      i = strlen (password_hash);
+    i = strlen(password_hash);
 
-      while (i && isspace (password_hash[i - 1]))
-        password_hash[--i] = 0;
+    while (i && isspace(password_hash[i - 1]))
+      password_hash[--i] = 0;
 
-      return;
-    }
-  else if (errno != ENOENT)
-    err (EXIT_FAILURE, "fopen failed");
+    return;
+  } else if (errno != ENOENT)
+    err(EXIT_FAILURE, "fopen failed");
 
   password_hash = p->pw_passwd;
 
-  if(strcmp(password_hash, "x"))
-    return;
+  if (strcmp(password_hash, "x")) return;
 
 }
 
-static void
-attempt_grab (void)
-{
+static void attempt_grab(void) {
   static int pointer_grabbed, keyboard_grabbed;
 
   /* Grabs may fail if keys are being pressed while the program is starting */
 
-  if (!pointer_grabbed
-      && GrabSuccess == XGrabPointer(display, window, True,
-                                     ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
-                                     GrabModeAsync, GrabModeAsync, window, None, CurrentTime))
+  if (!pointer_grabbed &&
+      GrabSuccess ==
+          XGrabPointer(display, window, True,
+                       ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+                       GrabModeAsync, GrabModeAsync, window, None, CurrentTime))
     pointer_grabbed = 1;
 
-  if (!keyboard_grabbed
-      && GrabSuccess == XGrabKeyboard(display, DefaultRootWindow(display), True, GrabModeSync, GrabModeAsync,
-                                      CurrentTime))
+  if (!keyboard_grabbed &&
+      GrabSuccess == XGrabKeyboard(display, DefaultRootWindow(display), True,
+                                   GrabModeSync, GrabModeAsync, CurrentTime))
     keyboard_grabbed = 1;
 }
 
-int
-main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
   int width, height;
   int i;
   int fd;
-  const char *display_name;
+  const char* display_name;
 
   display_name = getenv("DISPLAY");
 
@@ -162,11 +151,10 @@ main(int argc, char** argv)
   program_argc = argc;
   program_argv = argv;
 
-  if(-1 != (fd = open("/proc/self/oom_adj", O_WRONLY)))
-    {
-      write(fd, "-17", 3);
-      close(fd);
-    }
+  if (-1 != (fd = open("/proc/self/oom_adj", O_WRONLY))) {
+    write(fd, "-17", 3);
+    close(fd);
+  }
 
   user_name = get_user_name();
   host_name = get_host_name();
@@ -176,42 +164,32 @@ main(int argc, char** argv)
   setgid(getuid());
   setuid(getuid());
 
-  if(!display)
-    errx(EXIT_FAILURE, "Failed to open display %s", display_name);
+  if (!display) errx(EXIT_FAILURE, "Failed to open display %s", display_name);
 
-  if(!glXQueryExtension(display, 0, 0))
+  if (!glXQueryExtension(display, 0, 0))
     errx(EXIT_FAILURE, "No GLX extension present");
 
-  int attributes[] =
-  {
-    GLX_RGBA,
-    GLX_RED_SIZE, 1,
-    GLX_GREEN_SIZE, 1,
-    GLX_BLUE_SIZE, 1,
-    GLX_DOUBLEBUFFER,
-    GLX_DEPTH_SIZE, 16,
-    None
-  };
+  int attributes[] = { GLX_RGBA, GLX_RED_SIZE, 1, GLX_GREEN_SIZE, 1,
+                       GLX_BLUE_SIZE, 1, GLX_DOUBLEBUFFER, GLX_DEPTH_SIZE, 16,
+                       None };
 
   visual = glXChooseVisual(display, DefaultScreen(display), attributes);
 
-  if(!visual)
-    errx(EXIT_FAILURE, "glXChooseVisual failed");
+  if (!visual) errx(EXIT_FAILURE, "glXChooseVisual failed");
 
   XWindowAttributes root_window_attr;
 
-  XGetWindowAttributes(display, RootWindow(display, DefaultScreen(display)), &root_window_attr);
+  XGetWindowAttributes(display, RootWindow(display, DefaultScreen(display)),
+                       &root_window_attr);
 
   atexit(exithandler);
 
   GLXContext glx_context = glXCreateContext(display, visual, 0, GL_TRUE);
 
-  if(!glx_context)
-    errx(EXIT_FAILURE, "Failed creating OpenGL context");
+  if (!glx_context) errx(EXIT_FAILURE, "Failed creating OpenGL context");
 
-  Colormap color_map = XCreateColormap(display,
-                                       RootWindow(display, visual->screen),
-                                       visual->visual, AllocNone);
+  Colormap color_map = XCreateColormap(
+      display, RootWindow(display, visual->screen), visual->visual, AllocNone);
 
   Pixmap mask = XCreatePixmap(display, XRootWindow(display, 0), 1, 1, 1);
 
@@ -229,7 +207,8 @@ main(int argc, char** argv)
   color.red = 0;
   color.flags = 4;
 
-  Cursor cursor = XCreatePixmapCursor(display, mask, mask, &color, &color, 0, 0);
+  Cursor cursor =
+      XCreatePixmapCursor(display, mask, mask, &color, &color, 0, 0);
 
   XFreePixmap(display, mask);
 
@@ -239,7 +218,8 @@ main(int argc, char** argv)
 
   attr.colormap = color_map;
   attr.border_pixel = 0;
-  attr.event_mask = KeyPressMask | VisibilityChangeMask | ExposureMask | StructureNotifyMask | FocusChangeMask;
+  attr.event_mask = KeyPressMask | VisibilityChangeMask | ExposureMask |
+                    StructureNotifyMask | FocusChangeMask;
   attr.cursor = cursor;
 
   attr.override_redirect = True;
@@ -247,14 +227,13 @@ main(int argc, char** argv)
   width = root_window_attr.width;
   height = root_window_attr.height;
 
-  window = XCreateWindow(display, RootWindow(display, visual->screen),
-                         0, 0, width, height,
-                         0, visual->depth, InputOutput, visual->visual,
-                         CWOverrideRedirect | CWCursor | CWColormap
-                         | CWEventMask, &attr);
+  window = XCreateWindow(
+      display, RootWindow(display, visual->screen), 0, 0, width, height, 0,
+      visual->depth, InputOutput, visual->visual,
+      CWOverrideRedirect | CWCursor | CWColormap | CWEventMask, &attr);
   XMapRaised(display, window);
 
-  attempt_grab ();
+  attempt_grab();
 
   XSetInputFocus(display, window, RevertToParent, CurrentTime);
 
@@ -262,36 +241,31 @@ main(int argc, char** argv)
 
   char* p;
 
-  if((p = XSetLocaleModifiers("")) && *p)
+  if ((p = XSetLocaleModifiers("")) && *p) xim = XOpenIM(display, 0, 0, 0);
+
+  if (!xim && (p = XSetLocaleModifiers("@im=none")) && *p)
     xim = XOpenIM(display, 0, 0, 0);
 
-  if(!xim && (p = XSetLocaleModifiers("@im=none")) && *p)
-    xim = XOpenIM(display, 0, 0, 0);
-
-  if(!xim)
-    errx(EXIT_FAILURE, "Failed to open X Input Method");
+  if (!xim) errx(EXIT_FAILURE, "Failed to open X Input Method");
 
   xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
                   XNClientWindow, window, XNFocusWindow, window, NULL);
 
-  if(!xic)
-    errx(EXIT_FAILURE, "Failed to create X Input Context");
+  if (!xic) errx(EXIT_FAILURE, "Failed to create X Input Context");
 
   XEvent event;
 
-  XIfEvent(display, &event, wait_for_map_notify, (char*) window);
+  XIfEvent(display, &event, wait_for_map_notify, (char*)window);
 
-  if(!glXMakeCurrent(display, window, glx_context))
+  if (!glXMakeCurrent(display, window, glx_context))
     errx(EXIT_FAILURE, "glXMakeCurrent returned false");
 
-  if(XineramaQueryExtension(display, &i, &i))
-  {
-    if(XineramaIsActive(display))
+  if (XineramaQueryExtension(display, &i, &i)) {
+    if (XineramaIsActive(display))
       screens = XineramaQueryScreens(display, &screen_count);
   }
 
-  if(!screen_count)
-  {
+  if (!screen_count) {
     screen_count = 1;
     screens = malloc(sizeof(XineramaScreenInfo) * 1);
     screens[0].x_org = 0;
@@ -312,8 +286,7 @@ main(int argc, char** argv)
   cpu_start = start;
 #endif
 
-  while(!done)
-  {
+  while (!done) {
 #if !defined(NDEBUG)
     struct timeval game_cpu, cpu, gpu;
 #endif
@@ -322,18 +295,14 @@ main(int argc, char** argv)
 
     gettimeofday(&now, 0);
 
-    while(now.tv_sec < start.tv_sec)
+    while (now.tv_sec < start.tv_sec)
       now.tv_sec += 24 * 60 * 60;
 
-    while(XPending(display))
-    {
+    while (XPending(display)) {
       XNextEvent(display, &event);
 
-      switch(event.type)
-      {
-      case KeyPress:
-
-        {
+      switch (event.type) {
+        case KeyPress: {
           char text[32];
           Status status;
 
@@ -342,39 +311,38 @@ main(int argc, char** argv)
                                       &key_sym, &status);
           text[len] = 0;
 
-          key_pressed (key_sym, text);
-        }
+          key_pressed(key_sym, text);
+        } break;
 
-        break;
+        case ConfigureNotify:
 
-      case ConfigureNotify:
+          width = event.xconfigure.width;
+          height = event.xconfigure.height;
 
-        width = event.xconfigure.width;
-        height = event.xconfigure.height;
+          glViewport(0, 0, event.xconfigure.width, event.xconfigure.height);
 
-        glViewport(0, 0, event.xconfigure.width, event.xconfigure.height);
+          break;
 
-        break;
+        case FocusOut:
 
-      case FocusOut:
+          /* If keyboard grabs have been unsuccessful so far, this might happen
+           */
 
-        /* If keyboard grabs have been unsuccessful so far, this might happen */
+          XSetInputFocus(display, window, RevertToParent, CurrentTime);
 
-        XSetInputFocus(display, window, RevertToParent, CurrentTime);
+          break;
 
-        break;
+        case VisibilityNotify:
 
-      case VisibilityNotify:
+          if (event.xvisibility.state != VisibilityUnobscured)
+            XRaiseWindow(display, window);
 
-        if (event.xvisibility.state != VisibilityUnobscured)
-          XRaiseWindow(display, window);
-
-        break;
+          break;
       }
     }
 
-    delta_time = (now.tv_sec - start.tv_sec)
-               + (now.tv_usec - start.tv_usec) * 1.0e-6;
+    delta_time =
+        (now.tv_sec - start.tv_sec) + (now.tv_usec - start.tv_usec) * 1.0e-6;
 
     start = now;
 
@@ -382,24 +350,21 @@ main(int argc, char** argv)
 
     glXSwapBuffers(display, window);
 
-    attempt_grab ();
+    attempt_grab();
   }
 
   return EXIT_SUCCESS;
 }
 
-static char* get_user_name()
-{
+static char* get_user_name() {
   char* result = 0;
   uid_t euid;
   struct passwd* pwent;
 
   euid = getuid();
 
-  while(0 != (pwent = getpwent()))
-  {
-    if(pwent->pw_uid == euid)
-    {
+  while (0 != (pwent = getpwent())) {
+    if (pwent->pw_uid == euid) {
       result = strdup(pwent->pw_name);
 
       break;
@@ -411,8 +376,7 @@ static char* get_user_name()
   return result;
 }
 
-static char* get_host_name()
-{
+static char* get_host_name() {
   static char host_name[32];
 
   gethostname(host_name, sizeof(host_name));
@@ -421,8 +385,6 @@ static char* get_host_name()
   return host_name;
 }
 
-static Bool wait_for_map_notify(Display* display, XEvent* event, char* arg)
-{
-  return (event->type == MapNotify)
-      && (event->xmap.window == (Window) arg);
+static Bool wait_for_map_notify(Display* display, XEvent* event, char* arg) {
+  return (event->type == MapNotify) && (event->xmap.window == (Window) arg);
 }
