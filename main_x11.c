@@ -43,15 +43,15 @@
 #include <GL/glx.h>
 
 #include "error.h"
-#include "input.h"
 
 #define NDEBUG 1
 
 /* AltiVec */
 #undef pixel
 
-extern void game_process_frame(float width, float height, double delta_time);
-extern void game_init();
+void game_process_frame(float width, float height, double delta_time);
+void game_init(void);
+void key_pressed(KeySym symbol, const char* text);
 
 int program_argc;
 char** program_argv;
@@ -72,8 +72,6 @@ static char* get_user_name();
 static char* get_host_name();
 static Bool wait_for_map_notify(Display*, XEvent* event, char* arg);
 
-static device_state device_states[2];
-
 static void exithandler(void)
 {
   if(restore)
@@ -81,8 +79,6 @@ static void exithandler(void)
 
   XFlush(display);
 }
-
-struct common_keys_type common_keys;
 
 char* user_name;
 char* host_name;
@@ -151,7 +147,7 @@ int
 main(int argc, char** argv)
 {
   int width, height;
-  int i, j;
+  int i;
   int fd;
   const char *display_name;
 
@@ -285,91 +281,6 @@ main(int argc, char** argv)
   if(!xic)
     fatal_error("Failed to create X Input Context");
 
-  memset(device_states, 0, sizeof(device_states));
-
-  device_states[0].type = device_keyboard;
-
-  int min_key, max_key;
-
-  XDisplayKeycodes(display, &min_key, &max_key);
-
-  int key_count = max_key - min_key + 1;
-
-  device_states[0].button_count = key_count;
-  device_states[0].button_states = calloc(key_count, sizeof(unsigned short));
-  device_states[0].button_names = malloc(key_count * sizeof(const char*));
-
-  int syms_per_key;
-
-  KeySym* syms = XGetKeyboardMapping(display, min_key, key_count, &syms_per_key);
-
-  for(i = 0; i < key_count; ++i)
-  {
-    KeySym key_sym = syms[i * syms_per_key];
-
-    if(!key_sym)
-    {
-      char* name = malloc(16);
-      sprintf(name, "#%d", i);
-
-      device_states[0].button_names[i] = name;
-    }
-    else
-    {
-      if(key_sym == XK_Escape) common_keys.escape = i;
-      else if(key_sym == XK_Left) common_keys.left = i;
-      else if(key_sym == XK_Right) common_keys.right = i;
-      else if(key_sym == XK_Up) common_keys.up = i;
-      else if(key_sym == XK_Down) common_keys.down = i;
-      else if(key_sym == XK_Return) common_keys.enter = i;
-      else if(key_sym == XK_space) common_keys.space = i;
-      else if(key_sym == XK_Shift_L) common_keys.lshift = i;
-      else if(key_sym == XK_Shift_R) common_keys.rshift = i;
-      else if(key_sym == XK_Control_L) common_keys.lctrl = i;
-      else if(key_sym == XK_Control_R) common_keys.rctrl = i;
-      else if(key_sym == XK_Alt_L) common_keys.lalt = i;
-      else if(key_sym == XK_Alt_R) common_keys.ralt = i;
-      else if(key_sym == XK_F1) common_keys.f[0] = i;
-      else if(key_sym == XK_F2) common_keys.f[1] = i;
-      else if(key_sym == XK_F3) common_keys.f[2] = i;
-      else if(key_sym == XK_F4) common_keys.f[3] = i;
-      else if(key_sym == XK_F5) common_keys.f[4] = i;
-      else if(key_sym == XK_F6) common_keys.f[5] = i;
-      else if(key_sym == XK_F7) common_keys.f[6] = i;
-      else if(key_sym == XK_F8) common_keys.f[7] = i;
-      else if(key_sym == XK_F9) common_keys.f[8] = i;
-      else if(key_sym == XK_F10) common_keys.f[9] = i;
-      else if(key_sym == XK_F11) common_keys.f[10] = i;
-      else if(key_sym == XK_F12) common_keys.f[11] = i;
-      else if(key_sym == XK_Insert) common_keys.insert = i;
-      else if(key_sym == XK_Delete) common_keys.del = i;
-      else if(key_sym == XK_Home) common_keys.home = i;
-      else if(key_sym == XK_End) common_keys.end = i;
-      else if(key_sym == XK_Page_Up) common_keys.pgup = i;
-      else if(key_sym == XK_Page_Down) common_keys.pgdown = i;
-
-      device_states[0].button_names[i] = XKeysymToString(key_sym);
-    }
-  }
-
-  XFree(syms);
-
-  device_states[1].name = "Pointer";
-  device_states[1].type = device_pointer;
-  device_states[1].connected = 1;
-  device_states[1].axis_count = 3;
-  device_states[1].axis_states = calloc(3, sizeof(signed short));
-  device_states[1].axis_names = malloc(3 * sizeof(const char*));
-  device_states[1].axis_names[0] = "X";
-  device_states[1].axis_names[1] = "Y";
-  device_states[1].axis_names[2] = "Wheel";
-  device_states[1].button_count = 3;
-  device_states[1].button_states = calloc(3, sizeof(signed short));
-  device_states[1].button_names = malloc(3 * sizeof(const char*));
-  device_states[1].button_names[0] = "Mouse_1";
-  device_states[1].button_names[1] = "Mouse_2";
-  device_states[1].button_names[2] = "Mouse_3";
-
   XEvent event;
 
   XIfEvent(display, &event, wait_for_map_notify, (char*) window);
@@ -433,61 +344,10 @@ main(int argc, char** argv)
           KeySym key_sym;
           int len = Xutf8LookupString(xic, &event.xkey, text, sizeof(text) - 1,
                                       &key_sym, &status);
+          text[len] = 0;
 
-          int keyidx = event.xkey.keycode - min_key;
-
-          if(keyidx >= 0 && keyidx < key_count)
-          {
-            if(device_states[0].button_states[keyidx] & button_released)
-            {
-              device_states[0].button_states[keyidx] = (0xff | button_repeated);
-            }
-            else
-            {
-              device_states[0].button_states[keyidx] = (0xff | button_pressed);
-            }
-          }
-
-          if((status == XLookupChars || status == XLookupBoth) && len)
-          {
-            if(strlen(device_states[0].text) + len < sizeof(device_states[0].text))
-            {
-              text[len] = 0;
-
-              strcat(device_states[0].text, text);
-            }
-          }
+          key_pressed (key_sym, text);
         }
-
-        break;
-
-      case KeyRelease:
-
-        {
-          int keyidx = event.xkey.keycode - min_key;
-
-          if(keyidx >= 0 && keyidx < key_count)
-            device_states[0].button_states[keyidx] = button_released;
-        }
-
-        break;
-
-      case MotionNotify:
-
-        device_states[1].axis_states[0] = event.xmotion.x;
-        device_states[1].axis_states[1] = event.xmotion.y;
-
-        break;
-
-      case ButtonPress:
-
-        device_states[1].button_states[event.xbutton.button - 1] = (0xff | button_pressed);
-
-        break;
-
-      case ButtonRelease:
-
-        device_states[1].button_states[event.xbutton.button - 1] = button_released;
 
         break;
 
@@ -525,12 +385,6 @@ main(int argc, char** argv)
     game_process_frame(width, height, delta_time);
 
     glXSwapBuffers(display, window);
-
-    for(i = 0; i < sizeof(device_states) / sizeof(device_states[0]); ++i)
-    {
-      for(j = 0; j < device_states[i].button_count; ++j)
-        device_states[i].button_states[j] &= ~(button_pressed | button_released | button_repeated);
-    }
 
     attempt_grab ();
   }
@@ -575,11 +429,4 @@ static Bool wait_for_map_notify(Display* display, XEvent* event, char* arg)
 {
   return (event->type == MapNotify)
       && (event->xmap.window == (Window) arg);
-}
-
-device_state* input_get_device_states(int* device_count)
-{
-  *device_count = 2;
-
-  return device_states;
 }

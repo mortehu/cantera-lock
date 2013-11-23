@@ -15,7 +15,7 @@ cantera_lock_SOURCES = \
   util.h util.c \
   texture.h texture.c \
   vector.h vector.c \
-  input.h main_x11.c \
+  main_x11.c \
   lock.c
 cantera_lock_LDADD = -lX11 -lGL -lGLU -lm -lXxf86vm -lpng -lXinerama -lcrypt
 
