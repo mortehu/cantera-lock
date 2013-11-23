@@ -12,10 +12,11 @@
 *~
 .deps
 .libs
+/cantera-lock
+/genpwhash
 Makefile
 Makefile.in
 aclocal.m4
-cantera-lock
 config.guess
 config.h
 config.sub
