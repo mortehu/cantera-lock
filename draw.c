@@ -56,24 +56,6 @@ void draw_bind_texture(int texture) {
 
 void draw_set_color(unsigned int color) { DRAW_current_color = color; }
 
-void draw_quad(int texture, float x, float y, float width, float height) {
-  size_t i;
-
-  if (DRAW_quad_count == MAX_BATCH_SIZE) draw_flush();
-
-  i = DRAW_quad_count++;
-  DRAW_quads[i].texture = texture;
-  DRAW_quads[i].color = DRAW_current_color;
-  DRAW_quads[i].x = x;
-  DRAW_quads[i].y = y;
-  DRAW_quads[i].width = width;
-  DRAW_quads[i].height = height;
-  DRAW_quads[i].u0 = 0.0f;
-  DRAW_quads[i].v0 = 0.0f;
-  DRAW_quads[i].u1 = 1.0f;
-  DRAW_quads[i].v1 = 1.0f;
-}
-
 void draw_quad_st(int texture, float x, float y, float width, float height,
                   float s0, float t0, float s1, float t1) {
   size_t i;
