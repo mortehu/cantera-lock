@@ -31,8 +31,7 @@
 
 #define MAX_BATCH_SIZE 1024
 
-struct DRAW_quad
-{
+struct DRAW_quad {
   int texture;
   uint32_t color;
   float x, y;
@@ -47,27 +46,20 @@ static size_t DRAW_quad_count;
 static int DRAW_current_texture;
 static unsigned int DRAW_current_color = 0xffffffff;
 
-void draw_bind_texture(int texture)
-{
-  if(texture != DRAW_current_texture)
-  {
+void draw_bind_texture(int texture) {
+  if (texture != DRAW_current_texture) {
     glBindTexture(GL_TEXTURE_2D, texture);
 
     DRAW_current_texture = texture;
   }
 }
 
-void draw_set_color(unsigned int color)
-{
-  DRAW_current_color = color;
-}
+void draw_set_color(unsigned int color) { DRAW_current_color = color; }
 
-void draw_quad(int texture, float x, float y, float width, float height)
-{
+void draw_quad(int texture, float x, float y, float width, float height) {
   size_t i;
 
-  if(DRAW_quad_count == MAX_BATCH_SIZE)
-    draw_flush();
+  if (DRAW_quad_count == MAX_BATCH_SIZE) draw_flush();
 
   i = DRAW_quad_count++;
   DRAW_quads[i].texture = texture;
@@ -83,12 +75,10 @@ void draw_quad(int texture, float x, float y, float width, float height)
 }
 
 void draw_quad_st(int texture, float x, float y, float width, float height,
-                  float s0, float t0, float s1, float t1)
-{
+                  float s0, float t0, float s1, float t1) {
   size_t i;
 
-  if(DRAW_quad_count == MAX_BATCH_SIZE)
-    draw_flush();
+  if (DRAW_quad_count == MAX_BATCH_SIZE) draw_flush();
 
   i = DRAW_quad_count++;
   DRAW_quads[i].texture = texture;
@@ -103,40 +93,36 @@ void draw_quad_st(int texture, float x, float y, float width, float height,
   DRAW_quads[i].v1 = t1;
 }
 
-void draw_flush()
-{
+void draw_flush() {
   size_t i;
 
-  for(i = 0; i < DRAW_quad_count; ++i)
-  {
+  for (i = 0; i < DRAW_quad_count; ++i) {
     struct DRAW_quad* quad = &DRAW_quads[i];
 
-    if(DRAW_current_texture != quad->texture)
-    {
-      if(i)
-      {
+    if (DRAW_current_texture != quad->texture) {
+      if (i) {
         glEnd();
         glBindTexture(GL_TEXTURE_2D, quad->texture);
         glBegin(GL_QUADS);
-      }
-      else
+      } else
         glBindTexture(GL_TEXTURE_2D, quad->texture);
 
       DRAW_current_texture = quad->texture;
     }
 
-    if(!i)
-      glBegin(GL_QUADS);
+    if (!i) glBegin(GL_QUADS);
 
-    glColor4ub(quad->color >> 16,
-               quad->color >> 8,
-               quad->color,
+    glColor4ub(quad->color >> 16, quad->color >> 8, quad->color,
                quad->color >> 24);
 
-    glTexCoord2f(quad->u0, quad->v0); glVertex2f(quad->x, quad->y);
-    glTexCoord2f(quad->u0, quad->v1); glVertex2f(quad->x, quad->y + quad->height);
-    glTexCoord2f(quad->u1, quad->v1); glVertex2f(quad->x + quad->width, quad->y + quad->height);
-    glTexCoord2f(quad->u1, quad->v0); glVertex2f(quad->x + quad->width, quad->y);
+    glTexCoord2f(quad->u0, quad->v0);
+    glVertex2f(quad->x, quad->y);
+    glTexCoord2f(quad->u0, quad->v1);
+    glVertex2f(quad->x, quad->y + quad->height);
+    glTexCoord2f(quad->u1, quad->v1);
+    glVertex2f(quad->x + quad->width, quad->y + quad->height);
+    glTexCoord2f(quad->u1, quad->v0);
+    glVertex2f(quad->x + quad->width, quad->y);
   }
 
   glEnd();
