@@ -27,7 +27,6 @@
 #endif
 #include <GL/gl.h>
 
-#include "error.h"
 #include "draw.h"
 #include "texture.h"
 
@@ -126,11 +125,7 @@ void DRAW_alloc_atlas()
   glGenTextures(1, &DRAW_atlases[i].texture);
 
   if(!DRAW_atlas_size)
-  {
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &DRAW_atlas_size);
-
-    info("Max texture size: %d", DRAW_atlas_size);
-  }
 
   draw_bind_texture(DRAW_atlases[i].texture);
 

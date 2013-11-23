@@ -2,16 +2,17 @@
 #include <windows.h>
 #endif
 
-#include <png.h>
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <err.h>
+
+#include <png.h>
 #include <GL/gl.h>
 
-#include "error.h"
 #include "draw.h"
 #include "texture.h"
 
@@ -43,25 +44,25 @@ int texture_load(const char* path)
   int bit_depth, pixel_format, interlace_type;
 
   if(TEXTURE_handle_count == MAX_TEXTURE_HANDLES)
-    fatal_error("Maximum number of textures (%d) reached", MAX_TEXTURE_HANDLES);
+    errx(EXIT_FAILURE, "Maximum number of textures (%d) reached", MAX_TEXTURE_HANDLES);
 
   f = fopen(path, "rb");
 
   if(!f)
-    fatal_error("Failed to open '%s': %s", path, strerror(errno));
+    errx(EXIT_FAILURE, "Failed to open '%s': %s", path, strerror(errno));
 
   png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
   if(png == NULL)
-    fatal_error("png_create_read_struct failed");
+    errx(EXIT_FAILURE, "png_create_read_struct failed");
 
   pnginfo = png_create_info_struct(png);
 
   if(pnginfo == NULL)
-    fatal_error("png_create_info_struct failed");
+    errx(EXIT_FAILURE, "png_create_info_struct failed");
 
   if(setjmp(png_jmpbuf(png)))
-    fatal_error("PNG decoding failed (%s)", path);
+    errx(EXIT_FAILURE, "PNG decoding failed (%s)", path);
 
   png_init_io(png, f);
 
@@ -71,7 +72,7 @@ int texture_load(const char* path)
                &interlace_type, int_p_NULL, int_p_NULL);
 
   if(bit_depth != 8)
-    fatal_error("Unsupported bit depth %d in %s", bit_depth, path);
+    errx(EXIT_FAILURE, "Unsupported bit depth %d in %s", bit_depth, path);
 
   switch(pixel_format)
   {
@@ -81,7 +82,7 @@ int texture_load(const char* path)
 
   default:
 
-    fatal_error("Unsupported pixel format in %s", path);
+    errx(EXIT_FAILURE, "Unsupported pixel format in %s", path);
   }
 
   data = malloc(height * width * 4);

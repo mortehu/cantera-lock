@@ -42,8 +42,6 @@
 
 #include <GL/glx.h>
 
-#include "error.h"
-
 #define NDEBUG 1
 
 /* AltiVec */
@@ -177,10 +175,10 @@ main(int argc, char** argv)
   setuid(getuid());
 
   if(!display)
-    fatal_error("Failed to open display %s", display_name);
+    errx(EXIT_FAILURE, "Failed to open display %s", display_name);
 
   if(!glXQueryExtension(display, 0, 0))
-    fatal_error("No GLX extension present");
+    errx(EXIT_FAILURE, "No GLX extension present");
 
   int attributes[] =
   {
@@ -196,9 +194,7 @@ main(int argc, char** argv)
   visual = glXChooseVisual(display, DefaultScreen(display), attributes);
 
   if(!visual)
-    fatal_error("glXChooseVisual failed");
-
-  info("X11 Visual: Screen: %d  Depth: %d", visual->screen, visual->depth);
+    errx(EXIT_FAILURE, "glXChooseVisual failed");
 
   XWindowAttributes root_window_attr;
 
@@ -209,9 +205,7 @@ main(int argc, char** argv)
   GLXContext glx_context = glXCreateContext(display, visual, 0, GL_TRUE);
 
   if(!glx_context)
-    fatal_error("Failed creating OpenGL context");
-
-  info("Direct rendering: %s", glXIsDirect(display, glx_context) ? "yes" : "no");
+    errx(EXIT_FAILURE, "Failed creating OpenGL context");
 
   Colormap color_map = XCreateColormap(display,
                                        RootWindow(display, visual->screen),
@@ -273,20 +267,20 @@ main(int argc, char** argv)
     xim = XOpenIM(display, 0, 0, 0);
 
   if(!xim)
-    fatal_error("Failed to open X Input Method");
+    errx(EXIT_FAILURE, "Failed to open X Input Method");
 
   xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
                   XNClientWindow, window, XNFocusWindow, window, NULL);
 
   if(!xic)
-    fatal_error("Failed to create X Input Context");
+    errx(EXIT_FAILURE, "Failed to create X Input Context");
 
   XEvent event;
 
   XIfEvent(display, &event, wait_for_map_notify, (char*) window);
 
   if(!glXMakeCurrent(display, window, glx_context))
-    fatal_error("glXMakeCurrent returned false");
+    errx(EXIT_FAILURE, "glXMakeCurrent returned false");
 
   if(XineramaQueryExtension(display, &i, &i))
   {

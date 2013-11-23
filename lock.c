@@ -9,7 +9,6 @@
 #include <GL/gl.h>
 #include <X11/extensions/Xinerama.h>
 
-#include "error.h"
 #include "draw.h"
 #include "font.h"
 
