@@ -9,7 +9,6 @@ AM_CPPFLAGS = -DBINDIR=\"$(bindir)\" -DPKGDATADIR=\"$(pkgdatadir)\" -D_BSD_SOURC
 
 cantera_lock_SOURCES = \
   draw.h draw.c \
-  error.h error.c \
   font.h lock-font.c \
   texture.h texture.c \
   main_x11.c \

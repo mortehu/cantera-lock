@@ -28,8 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <err.h>
+
 #include "draw.h"
-#include "error.h"
 #include "font.h"
 #include "texture.h"
 
@@ -89,14 +90,14 @@ font_load(const char* name)
   f = fopen(fullpath, "rb");
 
   if(!f)
-    fatal_error("Failed to open font '%s' for reading: %s", fullpath, strerror(errno));
+    errx(EXIT_FAILURE, "Failed to open font '%s' for reading: %s", fullpath, strerror(errno));
 
   fseek(f, 0, SEEK_END);
   file_size = ftell(f);
   rewind(f);
 
   if(!file_size || (file_size % sizeof(struct FONT_glyph_info)))
-    fatal_error("Error in '%s': expected to be multiple of %d bytes, was %d",
+    errx(EXIT_FAILURE, "Error in '%s': expected to be multiple of %d bytes, was %d",
                 sizeof(struct FONT_glyph_info), (int) file_size);
 
   result = FONT_font_count++;
@@ -104,7 +105,7 @@ font_load(const char* name)
   FONT_fonts[result].glyphs = malloc(file_size);
 
   if(file_size != fread(FONT_fonts[result].glyphs, 1, file_size, f))
-    fatal_error("Failed read of size %d from '%s'", (int) file_size, fullpath);
+    errx(EXIT_FAILURE, "Failed read of size %d from '%s'", (int) file_size, fullpath);
 
   fclose(f);
 
@@ -163,9 +164,9 @@ FONT_glyph(int font, int size, int ch)
      || FONT_fonts[font].glyphs[first].character != ch)
     {
       if(isprint(ch))
-        fatal_error("Character %c (%d) of size %d not found in font %d", ch, ch, size, font);
+        errx(EXIT_FAILURE, "Character %c (%d) of size %d not found in font %d", ch, ch, size, font);
       else
-        fatal_error("Character %d of size %d not found in font %d", ch, size,font);
+        errx(EXIT_FAILURE, "Character %d of size %d not found in font %d", ch, size,font);
     }
 
   return first;
