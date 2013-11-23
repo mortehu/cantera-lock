@@ -13,7 +13,6 @@
 
 #include "error.h"
 #include "draw.h"
-#include "hashmap.h"
 #include "texture.h"
 
 #define MAX_TEXTURE_HANDLES 1024
@@ -27,7 +26,6 @@ struct TEXTURE_handle
 
 static struct TEXTURE_handle TEXTURE_handles[MAX_TEXTURE_HANDLES];
 static int TEXTURE_handle_count;
-static struct hashmap* TEXTURE_hashmap;
 
 #ifndef png_jmpbuf
 #  define png_jmpbuf(png) ((png)->jmpbuf)
@@ -43,17 +41,6 @@ int texture_load(const char* path)
   unsigned char* data;
   unsigned int row;
   int bit_depth, pixel_format, interlace_type;
-  int i;
-
-  if(!TEXTURE_hashmap)
-    TEXTURE_hashmap = hashmap_create("textures");
-
-  if(hashmap_has_key(TEXTURE_hashmap, path))
-  {
-    i = hashmap_get(TEXTURE_hashmap, path);
-
-    return TEXTURE_handles[i].handle;
-  }
 
   if(TEXTURE_handle_count == MAX_TEXTURE_HANDLES)
     fatal_error("Maximum number of textures (%d) reached", MAX_TEXTURE_HANDLES);
@@ -125,8 +112,6 @@ int texture_load(const char* path)
   TEXTURE_handles[TEXTURE_handle_count].path = strdup(path);
   TEXTURE_handles[TEXTURE_handle_count].width = width;
   TEXTURE_handles[TEXTURE_handle_count].height = height;
-
-  hashmap_insert(TEXTURE_hashmap, path, TEXTURE_handle_count);
 
   free(data);
 
