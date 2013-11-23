@@ -45,18 +45,6 @@ struct DRAW_quad
 static struct DRAW_quad DRAW_quads[MAX_BATCH_SIZE];
 static size_t DRAW_quad_count;
 
-struct DRAW_sprite_atlas
-{
-  GLuint texture;
-
-  uint16_t* bottom;
-};
-
-static struct DRAW_sprite_atlas* DRAW_atlases;
-static size_t DRAW_atlas_count;
-
-static GLint DRAW_atlas_size = 0;
-
 static int DRAW_current_texture;
 static unsigned int DRAW_current_color = 0xffffffff;
 
@@ -114,118 +102,6 @@ void draw_quad_st(int texture, float x, float y, float width, float height,
   DRAW_quads[i].v0 = t0;
   DRAW_quads[i].u1 = s1;
   DRAW_quads[i].v1 = t1;
-}
-
-void DRAW_alloc_atlas()
-{
-  size_t i = DRAW_atlas_count++;
-
-  DRAW_atlases = realloc(DRAW_atlases, sizeof(struct DRAW_sprite_atlas) * DRAW_atlas_count);
-
-  glGenTextures(1, &DRAW_atlases[i].texture);
-
-  if(!DRAW_atlas_size)
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &DRAW_atlas_size);
-
-  draw_bind_texture(DRAW_atlases[i].texture);
-
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, DRAW_atlas_size, DRAW_atlas_size, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
-  DRAW_atlases[i].bottom = calloc(sizeof(uint16_t), DRAW_atlas_size);
-}
-
-/**
- * bottom + quadratic search: 2.2s
- */
-
-void draw_add_sprite(struct sprite* target, const void* data,
-                     unsigned int width, unsigned int height, int flags)
-{
-  struct DRAW_sprite_atlas* atlas = 0;
-  unsigned int j, k;
-  unsigned int x = 0, y = 0;
-
-  unsigned int best_max = DRAW_atlas_size;
-  unsigned int best_max_x = 0;
-
-  if(DRAW_atlas_count)
-  {
-    atlas = &DRAW_atlases[DRAW_atlas_count - 1];
-
-    for(j = 0; j < DRAW_atlas_size - width + 1; ++j)
-    {
-      unsigned int max = atlas->bottom[j];
-
-      for(k = 1; k < width && max < best_max; ++k)
-      {
-        if(atlas->bottom[j + k] > max)
-          max = atlas->bottom[j + k];
-      }
-
-      if(max < best_max)
-      {
-        best_max = max;
-        best_max_x = j;
-      }
-    }
-  }
-
-  if(best_max + height <= DRAW_atlas_size)
-  {
-    x = best_max_x;
-    y = best_max;
-
-    assert(x + width <= DRAW_atlas_size);
-  }
-  else
-  {
-    DRAW_alloc_atlas();
-
-    atlas = &DRAW_atlases[DRAW_atlas_count - 1];
-    x = 0;
-    y = 0;
-  }
-
-  for(j = 0; j < width; ++j)
-    atlas->bottom[x + j] = y + height;
-
-  target->texture = atlas->texture;
-  target->width = width;
-  target->height = height;
-  target->u0 = (float) x / DRAW_atlas_size;
-  target->v0 = (float) y / DRAW_atlas_size;
-  target->u1 = (float) (x + width) / DRAW_atlas_size;
-  target->v1 = (float) (y + height) / DRAW_atlas_size;
-
-  draw_bind_texture(target->texture);
-
-  glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
-}
-
-void draw_sprite(struct sprite* sprite, float x, float y)
-{
-  size_t i;
-
-  if(DRAW_quad_count == MAX_BATCH_SIZE)
-    draw_flush();
-
-  i = DRAW_quad_count++;
-  DRAW_quads[i].texture = sprite->texture;
-  DRAW_quads[i].color = DRAW_current_color;
-  DRAW_quads[i].x = x;
-  DRAW_quads[i].y = y;
-  DRAW_quads[i].width = sprite->width;
-  DRAW_quads[i].height = sprite->height;
-  DRAW_quads[i].u0 = sprite->u0;
-  DRAW_quads[i].v0 = sprite->v0;
-  DRAW_quads[i].u1 = sprite->u1;
-  DRAW_quads[i].v1 = sprite->v1;
 }
 
 void draw_flush()
