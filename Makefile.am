@@ -1,4 +1,4 @@
-bin_PROGRAMS = cantera-lock
+bin_PROGRAMS = cantera-lock genpwhash
 
 CONVERT = @CONVERT@
 
@@ -12,3 +12,6 @@ cantera_lock_SOURCES = \
   main.c \
   lock.c
 cantera_lock_LDADD = $(PACKAGES_LIBS) -lm -lGL -lXinerama -lcrypt
+
+genpwhash_SOURCES = genpwhash.c
+genpwhash_LDADD = -lcrypt
