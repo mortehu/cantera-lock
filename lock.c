@@ -6,20 +6,44 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <GL/gl.h>
+#include <err.h>
+
 #include <X11/extensions/Xinerama.h>
 
 #include "draw.h"
 #include "font.h"
+#include "glyph.h"
 
-static int font;
+struct FONT_Data *font;
+
 static time_t begin_lock;
 static time_t hide_hud = 0;
 
 void game_init(void)
 {
+  int ch;
+
+  FONT_Init ();
+  GLYPH_Init ();
+
+  if (!(font = FONT_Load ("Bitstream Vera Sans Mono", 18, 100)))
+    errx (EXIT_FAILURE, "Failed to load font \"Arial\"");
+
+  for (ch = ' '; ch <= '~'; ++ch)
+  {
+    struct FONT_Glyph *glyph;
+
+    if (!(glyph = FONT_GlyphForCharacter (font, ch)))
+      fprintf (stderr, "Failed to get glyph for '%d'", ch);
+
+    GLYPH_Add (ch, glyph);
+
+    free (glyph);
+  }
+
+  GLYPH_UpdateTexture();
+
   begin_lock = time(0);
-  font = font_load("vera-sans-mono");
 
   hide_hud = begin_lock + 60;
 }
@@ -68,6 +92,27 @@ key_pressed (KeySym symbol, const char* text)
     exit(0);
 
   hide_hud = time(0) + 20;
+}
+
+void
+text_draw(const char* string, float x, float y)
+{
+  for (; *string; ++string)
+  {
+    struct FONT_Glyph glyph;
+    uint16_t u, v;
+
+    GLYPH_Get (*string, &glyph, &u, &v);
+
+    draw_quad_st(GLYPH_Texture(), x - glyph.x,
+                 y - glyph.y, glyph.width, glyph.height,
+                 (float) u / GLYPH_ATLAS_SIZE,
+                 (float) v / GLYPH_ATLAS_SIZE,
+                 (float) (u + glyph.width) / GLYPH_ATLAS_SIZE,
+                 (float) (v + glyph.height) / GLYPH_ATLAS_SIZE);
+
+    x += glyph.xOffset;
+  }
 }
 
 void
@@ -132,13 +177,13 @@ game_process_frame(float width, float height, double delta_time)
           draw_set_color(0xffffffff);
 
           asprintf(&buf, "%s at %s", user_name, host_name);
-          font_draw(font, 18, buf, x + 10.0, y + 20.0, 0);
+          text_draw(buf, x + 10.0, y + 20.0);
           free(buf);
 
           y += 25.0f;
           draw_set_color(0xffcccccc);
           asprintf(&buf, "Locked since %s", date);
-          font_draw(font, 18, buf, x + 10.0, y + 20.0, 0);
+          text_draw(buf, x + 10.0, y + 20.0);
           free(buf);
 
           unsigned int diff = (now_tt - begin_lock);
@@ -151,7 +196,7 @@ game_process_frame(float width, float height, double delta_time)
             asprintf(&buf, "%u:%02u hours ago", diff / 3600, (diff / 60) % 60);
 
           y += 25.0f;
-          font_draw(font, 18, buf, x + 10.0, y + 20.0, 0);
+          text_draw(buf, x + 10.0, y + 20.0);
           free(buf);
 
           buf = malloc(strlen(pass) + sizeof("Password: "));
@@ -160,13 +205,13 @@ game_process_frame(float width, float height, double delta_time)
             strcat(buf, "*");
 
           y += 25.0f;
-          font_draw(font, 18, buf, x + 10.0, y + 20.0, 0);
+          text_draw(buf, x + 10.0, y + 20.0);
           free(buf);
 
           now = time (0);
           lt = localtime(&now);
           strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S %Z", lt);
-          font_draw(font, 18, date, x + 10.0, screens[i].y_org + screens[i].height - 10.0, 0);
+          text_draw(date, x + 10.0, screens[i].y_org + screens[i].height - 10.0);
         }
     }
 
