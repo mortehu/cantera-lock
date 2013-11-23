@@ -11,7 +11,6 @@ cantera_lock_SOURCES = \
   draw.h draw.c \
   error.h error.c \
   font.h lock-font.c \
-  util.h util.c \
   texture.h texture.c \
   main_x11.c \
   lock.c
