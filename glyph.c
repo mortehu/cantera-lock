@@ -14,7 +14,7 @@ struct glyph_Data {
 };
 
 static uint32_t *bitmap;
-static struct glyph_Data glyphs[65536]; /* 1 MB */
+static struct glyph_Data glyphs[65536]; // 1 MB
 static uint32_t loadedGlyphs[65536 / 32];
 static unsigned int top[GLYPH_ATLAS_SIZE];
 static int glyph_dirty;
@@ -33,7 +33,7 @@ void GLYPH_Init(void) {
 
   bitmap = calloc(sizeof(*bitmap), GLYPH_ATLAS_SIZE * GLYPH_ATLAS_SIZE);
 
-  /* Add white pixel for easy solid color drawing */
+  // Add white pixel for easy solid color drawing.
   bitmap[0] = 0xffffffff;
   top[0] = 1;
 }

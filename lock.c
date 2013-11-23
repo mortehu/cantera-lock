@@ -1,5 +1,6 @@
 #include <string.h>
 #include <math.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -14,12 +15,11 @@
 #include "font.h"
 #include "glyph.h"
 
-struct FONT_Data* font;
-
 static time_t begin_lock;
 static time_t hide_hud = 0;
 
 void game_init(void) {
+  struct FONT_Data* font;
   int ch;
 
   FONT_Init();
@@ -39,6 +39,7 @@ void game_init(void) {
     free(glyph);
   }
 
+  FONT_Free(font);
   GLYPH_UpdateTexture();
 
   begin_lock = time(0);
@@ -55,7 +56,7 @@ extern char* password_hash;
 extern XineramaScreenInfo* screens;
 extern int screen_count;
 
-static char pass[1024];
+static char pass[256];
 
 static const char* hash_for_password(const char* password, const char* salt) {
   return crypt(password, salt);
@@ -77,7 +78,7 @@ void key_pressed(KeySym symbol, const char* text) {
 
     default:
 
-      if (strlen(pass) + strlen(text) < sizeof(pass) - 1) strcat(pass, text);
+      if (strlen(pass) + strlen(text) + 1 < sizeof(pass)) strcat(pass, text);
   }
 
   if (!strcmp(password_hash, hash_for_password(pass, password_hash))) exit(0);
@@ -85,12 +86,18 @@ void key_pressed(KeySym symbol, const char* text) {
   hide_hud = time(0) + 20;
 }
 
-void text_draw(const char* string, float x, float y) {
-  for (; *string; ++string) {
+void text_draw(float x, float y, const char* fmt, ...) {
+  char* string, *ch;
+  va_list args;
+  va_start(args, fmt);
+
+  if (-1 == vasprintf(&string, fmt, args)) return;
+
+  for (ch = string; *ch; ++ch) {
     struct FONT_Glyph glyph;
     uint16_t u, v;
 
-    GLYPH_Get(*string, &glyph, &u, &v);
+    GLYPH_Get(*ch, &glyph, &u, &v);
 
     draw_quad_st(GLYPH_Texture(), x - glyph.x, y - glyph.y, glyph.width,
                  glyph.height, (float) u / GLYPH_ATLAS_SIZE,
@@ -100,12 +107,13 @@ void text_draw(const char* string, float x, float y) {
 
     x += glyph.xOffset;
   }
+
+  free(string);
 }
 
 void game_process_frame(float width, float height, double delta_time) {
-  int i, j;
+  int i;
   float x, y;
-  char* buf;
   time_t now_tt;
 
   now_tt = time(0);
@@ -157,42 +165,37 @@ void game_process_frame(float width, float height, double delta_time) {
 
       draw_set_color(0xffffffff);
 
-      asprintf(&buf, "%s at %s", user_name, host_name);
-      text_draw(buf, x + 10.0, y + 20.0);
-      free(buf);
-
+      text_draw(x + 10.0, y + 20.0, "%s at %s", user_name, host_name);
       y += 25.0f;
+
       draw_set_color(0xffcccccc);
-      asprintf(&buf, "Locked since %s", date);
-      text_draw(buf, x + 10.0, y + 20.0);
-      free(buf);
+      text_draw(x + 10.0, y + 20.0, "Locked since %s", date);
+      y += 25.0f;
 
       unsigned int diff = (now_tt - begin_lock);
 
       if (diff < 120)
-        asprintf(&buf, "%u seconds ago", diff);
+        text_draw(x + 10.0, y + 20.0, "%u seconds ago", diff);
       else if (diff < 3600)
-        asprintf(&buf, "%u:%02u minutes ago", diff / 60, diff % 60);
+        text_draw(x + 10.0, y + 20.0, "%u:%02u minutes ago", diff / 60,
+                  diff % 60);
       else
-        asprintf(&buf, "%u:%02u hours ago", diff / 3600, (diff / 60) % 60);
-
+        text_draw(x + 10.0, y + 20.0, "%u:%02u hours ago", diff / 3600,
+                  (diff / 60) % 60);
       y += 25.0f;
-      text_draw(buf, x + 10.0, y + 20.0);
-      free(buf);
 
-      buf = malloc(strlen(pass) + sizeof("Password: "));
-      strcpy(buf, "Password: ");
-      for (j = 0; pass[j]; ++j)
-        strcat(buf, "*");
-
+      char pass_obfuscated[sizeof(pass)];
+      size_t pass_length = strlen(pass);
+      memset(pass_obfuscated, '*', pass_length);
+      pass_obfuscated[pass_length] = 0;
+      text_draw(x + 10.0, y + 20.0, "Password: %s", pass_obfuscated);
       y += 25.0f;
-      text_draw(buf, x + 10.0, y + 20.0);
-      free(buf);
 
       now = time(0);
       lt = localtime(&now);
       strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S %Z", lt);
-      text_draw(date, x + 10.0, screens[i].y_org + screens[i].height - 10.0);
+      text_draw(x + 10.0, screens[i].y_org + screens[i].height - 10.0, "%s",
+                date);
     }
   }
 

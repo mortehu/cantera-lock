@@ -9,11 +9,6 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_GNU_SOURCE
 
-PKG_CHECK_MODULES([PACKAGES], [x11 freetype2 >= 9.20 fontconfig >= 2.8.0 glew])
-
-AC_CHECK_HEADER([X11/extensions/Xrender.h], [], [AC_MSG_ERROR([libxrender required (apt-get install libxrender-dev)])])
-AC_CHECK_HEADER([X11/extensions/Xinerama.h], [], [AC_MSG_ERROR([libxinerama required (apt-get install libxinerama-dev)])])
-
-AC_C_BIGENDIAN
+PKG_CHECK_MODULES([PACKAGES], [freetype2 >= 9.20 fontconfig >= 2.8.0 x11 xinerama xrender])
 
 AC_OUTPUT(Makefile)

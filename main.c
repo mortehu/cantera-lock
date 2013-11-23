@@ -35,8 +35,6 @@
 #include <unistd.h>
 
 #include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/extensions/xf86vmode.h>
 #include <X11/extensions/Xinerama.h>
 #include <X11/keysym.h>
 
@@ -44,17 +42,9 @@
 
 extern char** environ;
 
-#define NDEBUG 1
-
-/* AltiVec */
-#undef pixel
-
 void game_process_frame(float width, float height, double delta_time);
 void game_init(void);
 void key_pressed(KeySym symbol, const char* text);
-
-int program_argc;
-char** program_argv;
 
 static Display* display = 0;
 static Window window;
@@ -65,18 +55,9 @@ static XIC xic;
 XineramaScreenInfo* screens;
 int screen_count = 0;
 
-static int restore;
-static XF86VidModeModeInfo** mode_info;
-
 static char* get_user_name();
 static char* get_host_name();
 static Bool wait_for_map_notify(Display*, XEvent* event, char* arg);
-
-static void exithandler(void) {
-  if (restore) XF86VidModeSwitchToMode(display, visual->screen, mode_info[0]);
-
-  XFlush(display);
-}
 
 char* user_name;
 char* host_name;
@@ -99,10 +80,18 @@ void get_password_hash(void) {
 
     password_hash = malloc(password_hash_alloc);
 
-    fgets(password_hash, password_hash_alloc, passkey_file);
+    if (!fgets(password_hash, password_hash_alloc, passkey_file)) {
+      if (ferror(passkey_file))
+        errx(EXIT_FAILURE, "Error reading '%s': %s", passkey_path,
+             strerror(errno));
+      else
+        errx(EXIT_FAILURE, "Passkey file '%s' appears to be empty",
+             passkey_path);
+    }
 
     i = strlen(password_hash);
 
+    // Remove trailing whitespace, usually one LF.
     while (i && isspace(password_hash[i - 1]))
       password_hash[--i] = 0;
 
@@ -119,7 +108,8 @@ void get_password_hash(void) {
 static void attempt_grab(void) {
   static int pointer_grabbed, keyboard_grabbed;
 
-  /* Grabs may fail if keys are being pressed while the program is starting */
+  // Grabs may fail if keys are being pressed while the program is starting, so
+  // we keep retrying until success.
 
   if (!pointer_grabbed &&
       GrabSuccess ==
@@ -144,13 +134,18 @@ int main(int argc, char** argv) {
 
   display = XOpenDisplay(display_name);
 
+  // This program may be installed as setuid root, so we don't want the
+  // environment to affect the behavior of this program in unexpected,
+  // potentially insecure, ways.
   environ = 0;
 
-  chdir("/");
+  // Move out of the way so that this process never holds up umount.
+  if (-1 == chdir("/"))
+    err(EXIT_FAILURE, "Failed to switch directory to the root directory");
 
-  program_argc = argc;
-  program_argv = argv;
-
+  // SysRq+F and runaway processes can activate the OOM killer, which may very
+  // well kill this process.  This is, of course, very bad for a screen locking
+  // program, so we try to tell the OOM killer to kill us last.
   if (-1 != (fd = open("/proc/self/oom_adj", O_WRONLY))) {
     write(fd, "-17", 3);
     close(fd);
@@ -161,8 +156,11 @@ int main(int argc, char** argv) {
 
   get_password_hash();
 
-  setgid(getuid());
-  setuid(getuid());
+  // Drop super-user privileges if we have to.
+  if (0 == geteuid()) {
+    setgid(getuid());
+    setuid(getuid());
+  }
 
   if (!display) errx(EXIT_FAILURE, "Failed to open display %s", display_name);
 
@@ -181,8 +179,6 @@ int main(int argc, char** argv) {
 
   XGetWindowAttributes(display, RootWindow(display, DefaultScreen(display)),
                        &root_window_attr);
-
-  atexit(exithandler);
 
   GLXContext glx_context = glXCreateContext(display, visual, 0, GL_TRUE);
 
@@ -260,10 +256,8 @@ int main(int argc, char** argv) {
   if (!glXMakeCurrent(display, window, glx_context))
     errx(EXIT_FAILURE, "glXMakeCurrent returned false");
 
-  if (XineramaQueryExtension(display, &i, &i)) {
-    if (XineramaIsActive(display))
-      screens = XineramaQueryScreens(display, &screen_count);
-  }
+  if (XineramaQueryExtension(display, &i, &i) && XineramaIsActive(display))
+    screens = XineramaQueryScreens(display, &screen_count);
 
   if (!screen_count) {
     screen_count = 1;
@@ -281,15 +275,7 @@ int main(int argc, char** argv) {
   struct timeval start;
   gettimeofday(&start, 0);
 
-#if !defined(NDEBUG)
-  struct timeval cpu_start, gpu_start;
-  cpu_start = start;
-#endif
-
   while (!done) {
-#if !defined(NDEBUG)
-    struct timeval game_cpu, cpu, gpu;
-#endif
     struct timeval now;
     double delta_time;
 
@@ -315,7 +301,6 @@ int main(int argc, char** argv) {
         } break;
 
         case ConfigureNotify:
-
           width = event.xconfigure.width;
           height = event.xconfigure.height;
 
@@ -324,16 +309,13 @@ int main(int argc, char** argv) {
           break;
 
         case FocusOut:
-
-          /* If keyboard grabs have been unsuccessful so far, this might happen
-           */
-
+          // If keyboard grabs have been unsuccessful so far, a FocusOut event
+          // may occur.  If so, we change the focus right back.
           XSetInputFocus(display, window, RevertToParent, CurrentTime);
 
           break;
 
         case VisibilityNotify:
-
           if (event.xvisibility.state != VisibilityUnobscured)
             XRaiseWindow(display, window);
 

@@ -9,6 +9,6 @@ cantera_lock_SOURCES = \
   font.c font.h \
   glyph.c glyph.h \
   draw.h draw.c \
-  main_x11.c \
+  main.c \
   lock.c
-cantera_lock_LDADD = $(PACKAGES_LIBS) -lutil -lm -lGL -lXxf86vm -lXinerama -lcrypt
+cantera_lock_LDADD = $(PACKAGES_LIBS) -lm -lGL -lXinerama -lcrypt
