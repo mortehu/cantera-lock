@@ -40,11 +40,9 @@
 
 #include <GL/glx.h>
 
-extern char** environ;
+#include "lock.h"
 
-void game_process_frame(float width, float height, double delta_time);
-void game_init(void);
-void key_pressed(KeySym symbol, const char* text);
+extern char** environ;
 
 static Display* display = 0;
 static Window window;
@@ -268,7 +266,7 @@ int main(int argc, char** argv) {
     screens[0].height = root_window_attr.height;
   }
 
-  game_init();
+  LOCK_init();
 
   int done = 0;
 
@@ -297,7 +295,7 @@ int main(int argc, char** argv) {
                                       &key_sym, &status);
           text[len] = 0;
 
-          key_pressed(key_sym, text);
+          LOCK_handle_key(key_sym, text);
         } break;
 
         case ConfigureNotify:
@@ -328,7 +326,7 @@ int main(int argc, char** argv) {
 
     start = now;
 
-    game_process_frame(width, height, delta_time);
+    LOCK_process_frame(width, height, delta_time);
 
     glXSwapBuffers(display, window);
 

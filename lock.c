@@ -1,3 +1,5 @@
+#include "lock.h"
+
 #include <string.h>
 #include <math.h>
 #include <stdarg.h>
@@ -15,10 +17,48 @@
 #include "font.h"
 #include "glyph.h"
 
+extern char* user_name;
+extern char* host_name;
+extern char* password_hash;
+
+extern XineramaScreenInfo* screens;
+extern int screen_count;
+
+static double now;
 static time_t begin_lock;
 static time_t hide_hud = 0;
+static char pass[256];
 
-void game_init(void) {
+static const char* hash_for_password(const char* password, const char* salt) {
+  return crypt(password, salt);
+}
+
+static void text_draw(float x, float y, const char* fmt, ...) {
+  char* string, *ch;
+  va_list args;
+  va_start(args, fmt);
+
+  if (-1 == vasprintf(&string, fmt, args)) return;
+
+  for (ch = string; *ch; ++ch) {
+    struct FONT_Glyph glyph;
+    uint16_t u, v;
+
+    GLYPH_Get(*ch, &glyph, &u, &v);
+
+    draw_quad_st(GLYPH_Texture(), x - glyph.x, y - glyph.y, glyph.width,
+                 glyph.height, (float) u / GLYPH_ATLAS_SIZE,
+                 (float) v / GLYPH_ATLAS_SIZE,
+                 (float)(u + glyph.width) / GLYPH_ATLAS_SIZE,
+                 (float)(v + glyph.height) / GLYPH_ATLAS_SIZE);
+
+    x += glyph.xOffset;
+  }
+
+  free(string);
+}
+
+void LOCK_init(void) {
   struct FONT_Data* font;
   int ch;
 
@@ -47,22 +87,7 @@ void game_init(void) {
   hide_hud = begin_lock + 60;
 }
 
-static double now;
-
-extern char* user_name;
-extern char* host_name;
-extern char* password_hash;
-
-extern XineramaScreenInfo* screens;
-extern int screen_count;
-
-static char pass[256];
-
-static const char* hash_for_password(const char* password, const char* salt) {
-  return crypt(password, salt);
-}
-
-void key_pressed(KeySym symbol, const char* text) {
+void LOCK_handle_key(KeySym symbol, const char* text) {
   switch (text[0]) {
     case '\b':
 
@@ -86,32 +111,7 @@ void key_pressed(KeySym symbol, const char* text) {
   hide_hud = time(0) + 20;
 }
 
-void text_draw(float x, float y, const char* fmt, ...) {
-  char* string, *ch;
-  va_list args;
-  va_start(args, fmt);
-
-  if (-1 == vasprintf(&string, fmt, args)) return;
-
-  for (ch = string; *ch; ++ch) {
-    struct FONT_Glyph glyph;
-    uint16_t u, v;
-
-    GLYPH_Get(*ch, &glyph, &u, &v);
-
-    draw_quad_st(GLYPH_Texture(), x - glyph.x, y - glyph.y, glyph.width,
-                 glyph.height, (float) u / GLYPH_ATLAS_SIZE,
-                 (float) v / GLYPH_ATLAS_SIZE,
-                 (float)(u + glyph.width) / GLYPH_ATLAS_SIZE,
-                 (float)(v + glyph.height) / GLYPH_ATLAS_SIZE);
-
-    x += glyph.xOffset;
-  }
-
-  free(string);
-}
-
-void game_process_frame(float width, float height, double delta_time) {
+void LOCK_process_frame(float width, float height, double delta_time) {
   int i;
   float x, y;
   time_t now_tt;
