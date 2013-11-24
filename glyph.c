@@ -14,7 +14,7 @@ struct glyph_Data {
 };
 
 static uint32_t *bitmap;
-static struct glyph_Data glyphs[65536]; // 1 MB
+static struct glyph_Data glyphs[65536];  // 1 MB
 static uint32_t loadedGlyphs[65536 / 32];
 static unsigned int top[GLYPH_ATLAS_SIZE];
 static int glyph_dirty;

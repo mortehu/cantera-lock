@@ -1,7 +1,9 @@
 #ifndef GLYPH_H_
 #define GLYPH_H_ 1
 
-#include "opengl.h"
+#include <GL/gl.h>
+#include <GL/glx.h>
+
 #include "font.h"
 
 #ifdef __cplusplus
