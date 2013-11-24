@@ -60,9 +60,15 @@ static void text_draw(float x, float y, const char* fmt, ...) {
 
 static void lock_draw_line(float width, float height) {
   size_t i, j;
-  float ys[200];
+  size_t x_count;
+  float* ys;
 
-  for (i = 0; i <= 200; ++i)
+  x_count = (size_t) 200 * width / 1366;
+  if (x_count < 50) x_count = 50;
+
+  ys = calloc(x_count, sizeof(*ys));
+
+  for (i = 0; i < x_count; ++i)
     ys[i] =
         0.1 * sin(i * 0.07 + cos(i * 0.03 + now + sin(i * 0.09 + now) * 0.2));
 
@@ -73,9 +79,10 @@ static void lock_draw_line(float width, float height) {
 
   for (j = 0; j < 5; ++j) {
     glBegin(GL_LINE_STRIP);
-    for (i = 0; i <= 200; ++i) {
+
+    for (i = 0; i < x_count; ++i) {
       float x, y, theta, a, r, g, b;
-      x = i * width / 200.0;
+      x = i * width / (x_count - 1);
       theta = j + i * 0.1;
       a = 0.6 + 0.6 * cos(theta);
       y = ys[i] + 0.05 * sin(theta);
@@ -96,6 +103,8 @@ static void lock_draw_line(float width, float height) {
     }
     glEnd();
   }
+
+  free(ys);
 }
 
 void LOCK_init(void) {
