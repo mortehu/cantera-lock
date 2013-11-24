@@ -58,6 +58,46 @@ static void text_draw(float x, float y, const char* fmt, ...) {
   free(string);
 }
 
+static void lock_draw_line(float width, float height) {
+  size_t i, j;
+  float ys[200];
+
+  for (i = 0; i <= 200; ++i)
+    ys[i] =
+        0.1 * sin(i * 0.07 + cos(i * 0.03 + now + sin(i * 0.09 + now) * 0.2));
+
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+  draw_bind_texture(0);
+
+  glLineWidth(3.0);
+
+  for (j = 0; j < 5; ++j) {
+    glBegin(GL_LINE_STRIP);
+    for (i = 0; i <= 200; ++i) {
+      float x, y, theta, a, r, g, b;
+      x = i * width / 200.0;
+      theta = j + i * 0.1;
+      a = 0.6 + 0.6 * cos(theta);
+      y = ys[i] + 0.05 * sin(theta);
+
+      r = 0.6 * a;
+      g = 0.8 * a;
+      b = a;
+
+      if (r > 1.0f) r = 1.0f;
+      if (g > 1.0f) g = 1.0f;
+      if (b > 1.0f) b = 1.0f;
+
+      glColor4f(r, g, b, 0.5);
+
+      y = y * height + height * 0.5;
+
+      glVertex2f(x, y);
+    }
+    glEnd();
+  }
+}
+
 void LOCK_init(void) {
   struct FONT_Data* font;
   int ch;
@@ -131,25 +171,7 @@ void LOCK_process_frame(float width, float height, double delta_time) {
   glLoadIdentity();
   glOrtho(0.0, width, height, 0.0, 0.0, -1.0);
 
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-  draw_bind_texture(0);
-
-  glLineWidth(8.0);
-
-  glColor4f(0.6, 0.8, 1.0, 0.5);
-
-  glBegin(GL_LINE_STRIP);
-
-  for (i = 0; i <= 200; ++i) {
-    x = i * width / 200.0;
-    y = 0.1 * sin(i * 0.07 + cos(i * 0.03 + now + sin(i * 0.09 + now) * 0.2));
-
-    y = y * height + height * 0.5;
-
-    glVertex2f(x, y);
-  }
-
-  glEnd();
+  lock_draw_line(width, height);
 
   if (now_tt < hide_hud) {
     for (i = 0; i < screen_count; ++i) {
