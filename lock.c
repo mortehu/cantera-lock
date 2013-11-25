@@ -83,7 +83,7 @@ static void lock_draw_line(float width, float height) {
     for (i = 0; i < x_count; ++i) {
       float x, y, theta, a, r, g, b;
       x = i * width / (x_count - 1);
-      theta = j + i * 0.1;
+      theta = j + i * 0.1 + 2.0 * now + 5.2 * sin(-0.7 * now + i * 0.04);
       a = 0.6 + 0.6 * cos(theta);
       y = ys[i] + 0.05 * sin(theta);
 
@@ -172,6 +172,7 @@ void LOCK_process_frame(float width, float height, double delta_time) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_BLEND);
   glEnable(GL_TEXTURE_2D);
+  glDepthMask(0);
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
