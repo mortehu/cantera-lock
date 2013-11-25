@@ -3,8 +3,7 @@ The program locks X11 screens
 Why NOT use this program:
 
  * Requires that the user can read their own password hash through getpwnam(),
-   or is willing to put a crypt() hash in ~/.cantera/lock-passkey.  Please use
-   one of the SHA based schemes ($5$ or $6$ prefix).
+   or is willing to put a crypt() hash in ~/.cantera/lock-passkey.
 
 Why use this program:
 
