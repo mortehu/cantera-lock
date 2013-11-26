@@ -81,11 +81,13 @@ static void lock_draw_line(float width, float height) {
     glBegin(GL_LINE_STRIP);
 
     for (i = 0; i < x_count; ++i) {
-      float x, y, theta, a, r, g, b;
+      float x, y, theta, twist, scale, a, r, g, b;
       x = i * width / (x_count - 1);
-      theta = j + i * 0.1 + 2.0 * now + 3.2 * sin(-0.7 * now + i * 0.04);
+      twist = sin(-0.7 * now + i * 0.04);
+      theta = j + i * 0.1 + 2.0 * now + 3.2 * twist;
       a = 0.6 + 0.6 * cos(theta);
-      y = ys[i] + 0.05 * sin(theta);
+      scale = 0.05 - 0.03 * (1.0 - fabs(twist));
+      y = ys[i] + scale * sin(theta);
 
       r = 0.6 * a;
       g = 0.8 * a;
