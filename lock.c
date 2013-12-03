@@ -70,7 +70,7 @@ static void lock_draw_line(float width, float height) {
 
   for (i = 0; i < x_count; ++i)
     ys[i] =
-        0.1 * sin(i * 0.07 + cos(i * 0.03 + now + sin(i * 0.09 + now) * 0.2));
+        0.07 * sin(i * 0.035 + cos(i * 0.021 + now + sin(i * 0.043 + now) * 0.22));
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE);
   draw_bind_texture(0);
@@ -83,7 +83,7 @@ static void lock_draw_line(float width, float height) {
     for (i = 0; i < x_count; ++i) {
       float x, y, theta, twist, scale, a, r, g, b;
       x = i * width / (x_count - 1);
-      twist = sin(-0.7 * now + i * 0.04);
+      twist = sin(-0.7 * now + i * 0.021 + cos(1.1 * now + i * 0.031));
       theta = j + i * 0.1 + 2.0 * now + 3.2 * twist;
       a = 0.6 + 0.6 * cos(theta);
       scale = 0.05 - 0.03 * (1.0 - fabs(twist));
