@@ -36,7 +36,7 @@ static void read_password(char password[static 256]) {
   if (!fgets(password, 255, stdin)) {
     enable_echo();
 
-    printf("\n");
+    fprintf(stderr, "\n");
 
     if (errno == 0) errx(EXIT_FAILURE, "End of file while reading password");
 
@@ -47,7 +47,7 @@ static void read_password(char password[static 256]) {
 
   enable_echo();
 
-  printf("\n");
+  fprintf(stderr, "\n");
 }
 
 void gensalt(char *salt) {
@@ -77,8 +77,7 @@ int main(int argc, char **argv) {
   char password[256];
   char salt[64];
 
-  printf("Password: ");
-  fflush(stdout);
+  fprintf(stderr, "Password: ");
   read_password(password);
   gensalt(salt);
 
